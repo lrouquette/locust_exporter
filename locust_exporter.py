@@ -29,15 +29,27 @@ class LocustCollector(object):
     metric.add_sample('locust_user_count', value=response['user_count'], labels={})
     yield metric
 
-    metric = Metric('locust_errors', 'Locust requests errors', 'gauge')
-    for err in response['errors']:
-        metric.add_sample('locust_errors', value=err['occurences'], labels={'path':err['name'], 'method':err['method']})
+    metric = Metric('locust_response_time_50', 'Response Time 50th Percentile', 'gauge')
+    metric.add_sample('locust_response_time_50', value=response["current_response_time_percentile_50"], labels={})
     yield metric
 
-    if 'slave_count' in response:
-        metric = Metric('locust_slave_count', 'Locust number of slaves', 'gauge')
-        metric.add_sample('locust_slave_count', value=response['slave_count'], labels={})
+    metric = Metric('locust_response_time_95', 'Response Time 95th Percentile', 'gauge')
+    metric.add_sample('locust_response_time_95', value=response["current_response_time_percentile_95"], labels={})
+    yield metric
+
+    if 'current_response_time_percentile_99' in response:
+        metric = Metric('locust_response_time_99', 'Response Time 99th Percentile', 'gauge')
+        metric.add_sample('locust_response_time_99', value=response["current_response_time_percentile_99"], labels={})
         yield metric
+
+    metric = Metric('locust_errors', 'Locust requests errors', 'gauge')
+    for err in response['errors']:
+        metric.add_sample('locust_errors', value=err['occurences'], labels={'path':err['name'], 'method':err['method'], 'error': err['error']})
+    yield metric
+
+    metric = Metric('locust_slave_count', 'Locust number of slaves', 'gauge')
+    metric.add_sample('locust_slave_count', value=len(response['slaves']), labels={})
+    yield metric
 
     metric = Metric('locust_fail_ratio', 'Locust failure ratio', 'gauge')
     metric.add_sample('locust_fail_ratio', value=response['fail_ratio'], labels={})
