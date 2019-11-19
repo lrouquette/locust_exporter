@@ -29,22 +29,27 @@ class LocustCollector(object):
     metric.add_sample('locust_user_count', value=response['user_count'], labels={})
     yield metric
 
-    metric = Metric('locust_response_time_50', 'Response Time 50th Percentile', 'gauge')
-    metric.add_sample('locust_response_time_50', value=response["current_response_time_percentile_50"], labels={})
-    yield metric
+    if response["current_response_time_percentile_50"] is not None:
+        metric = Metric('locust_response_time_50', 'Response Time 50th Percentile', 'gauge')
+        metric.add_sample('locust_response_time_50', value=response["current_response_time_percentile_50"], labels={})
+        yield metric
 
-    metric = Metric('locust_response_time_95', 'Response Time 95th Percentile', 'gauge')
-    metric.add_sample('locust_response_time_95', value=response["current_response_time_percentile_95"], labels={})
-    yield metric
+    if response["current_response_time_percentile_95"] is not None:
+        metric = Metric('locust_response_time_95', 'Response Time 95th Percentile', 'gauge')
+        metric.add_sample('locust_response_time_95', value=response["current_response_time_percentile_95"], labels={})
+        yield metric
 
-    if 'current_response_time_percentile_99' in response:
+    if 'current_response_time_percentile_99' in response and response["current_response_time_percentile_99"] is not None:
         metric = Metric('locust_response_time_99', 'Response Time 99th Percentile', 'gauge')
         metric.add_sample('locust_response_time_99', value=response["current_response_time_percentile_99"], labels={})
         yield metric
 
     metric = Metric('locust_errors', 'Locust requests errors', 'gauge')
     for err in response['errors']:
-        metric.add_sample('locust_errors', value=err['occurences'], labels={'path':err['name'], 'method':err['method'], 'error': err['error']})
+        if 'occurrences' in err:
+            metric.add_sample('locust_errors', value=err['occurrences'], labels={'path':err['name'], 'method':err['method'], 'error': err['error']}) # Typo fixed in v0.12+
+        else:
+            metric.add_sample('locust_errors', value=err['occurences'], labels={'path':err['name'], 'method':err['method'], 'error': err['error']})
     yield metric
 
     metric = Metric('locust_slave_count', 'Locust number of slaves', 'gauge')
@@ -65,7 +70,7 @@ class LocustCollector(object):
             mtype = 'counter'
         metric = Metric('locust_requests_'+mtr, 'Locust requests '+mtr, mtype)
         for stat in response['stats']:
-            if not 'Aggregated' in stat['name']:
+            if not 'Total' in stat['name'] and not 'Aggregated' in stat['name']: # 'Total' renamed to 'Aggregated' in v0.12.+
                 metric.add_sample('locust_requests_'+mtr, value=stat[mtr], labels={'path':stat['name'], 'method':stat['method']})
         yield metric
 
